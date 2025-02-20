@@ -26,6 +26,8 @@ func main() {
 		Commands: map[string]func(*internal.State, internal.Command) error{
 			"login": internal.HandlerLogin,
 			"register": internal.HandlerRegister,
+			"reset": internal.HandlerReset,
+			"users": internal.HandlerUsers,
 		},
 	}
 

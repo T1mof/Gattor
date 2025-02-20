@@ -62,3 +62,27 @@ func HandlerRegister(s *State, cmd Command) error {
 	}
 	return fmt.Errorf("user already exists")
 }
+
+func HandlerReset(s *State, cmd Command) error {
+	err := s.Db.DeleteUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("Failed to delete users: %w", err)
+	}
+	return nil
+}
+
+func HandlerUsers(s *State, cmd Command) error {
+	users, err := s.Db.GetAllUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("Failed to get all users: %w", err)
+	}
+	currentUser := s.Cfg.CurrentUserName
+	for _, user := range users {
+		if user.Name == currentUser {
+			fmt.Println("* " + user.Name + " (current)")
+		} else {
+			fmt.Println("* " + user.Name)
+		}
+	}
+	return nil
+}
