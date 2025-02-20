@@ -19,11 +19,11 @@ func (c *Config) SetUser(username string) error {
 }
 
 func getConfigFilePath() (string, error) {
-	home, err := os.UserHomeDir()
+	cwd, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
-	fullPath := filepath.Join(home, configFileName)
+	fullPath := filepath.Join(cwd, configFileName)
 	return fullPath, nil
 }
 

@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"database/sql"
+	"Gattor/internal/database"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -15,10 +18,14 @@ func main() {
 	}
 	fmt.Printf("Read config: %+v\n", cfg)
 
-	state := internal.State{Cfg: &cfg}
+	db, err := sql.Open("postgres", cfg.DBURL)
+	dbQueries := database.New(db)
+
+	state := internal.State{Cfg: &cfg, Db: dbQueries}
 	commands := internal.Сommands{
 		Commands: map[string]func(*internal.State, internal.Command) error{
 			"login": internal.HandlerLogin,
+			"register": internal.HandlerRegister,
 		},
 	}
 
