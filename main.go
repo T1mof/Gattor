@@ -3,7 +3,6 @@ package main
 import (
 	"Gattor/internal"
 	"Gattor/internal/config"
-	"fmt"
 	"log"
 	"os"
 	"database/sql"
@@ -16,7 +15,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("error reading config: %v", err)
 	}
-	fmt.Printf("Read config: %+v\n", cfg)
+	//fmt.Printf("Read config: %+v\n", cfg)
 
 	db, err := sql.Open("postgres", cfg.DBURL)
 	dbQueries := database.New(db)
@@ -28,6 +27,9 @@ func main() {
 			"register": internal.HandlerRegister,
 			"reset": internal.HandlerReset,
 			"users": internal.HandlerUsers,
+			"agg": internal.HandlerAgg,
+			"addfeed": internal.HandlerAddFeed,
+			"feeds": internal.HandlerFeeds,
 		},
 	}
 

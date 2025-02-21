@@ -86,3 +86,57 @@ func HandlerUsers(s *State, cmd Command) error {
 	}
 	return nil
 }
+
+func HandlerAgg(s *State, cmd Command) error {
+	rss, err := fetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	if err != nil {
+		return fmt.Errorf("Failed to fetch: %w", err)
+	}
+	fmt.Println(rss)
+	return nil
+}
+
+func HandlerAddFeed(s *State, cmd Command) error {
+	if len(cmd.Args) != 2 {
+		return fmt.Errorf("Error argument")
+	}
+
+	currentUser, err := s.Db.GetUser(context.Background(), s.Cfg.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("Failed to get user id: %w", err)
+	}
+
+	newFeed, err := s.Db.CreateFeed(context.Background(), database.CreateFeedParams{
+		ID: uuid.New(), 
+		CreatedAt: time.Now(), 
+		UpdatedAt: time.Now(), 
+		Name: cmd.Args[0],
+		Url: cmd.Args[1],
+		UserID: currentUser.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to create feed: %w", err)
+	}
+
+	fmt.Println(newFeed)
+	return nil
+}
+
+func HandlerFeeds(s *State, cmd Command) error {
+	feeds, err := s.Db.GetFeeds(context.Background())
+	if err != nil {
+		return fmt.Errorf("Failed to get feeds: %w", err)
+	}
+
+	for _, feed := range feeds {
+		fmt.Println(feed.Name)
+		fmt.Println(feed.Url)
+		username, err := s.Db.GetUserName(context.Background(), feed.UserID)
+		if err != nil {
+			return fmt.Errorf("Failed to get username: %w", err)
+		}
+		fmt.Println(username)
+	}
+
+	return nil
+}
