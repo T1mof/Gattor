@@ -1,4 +1,4 @@
-package internal
+package main
 
 import (
 	"context"
@@ -96,14 +96,9 @@ func HandlerAgg(s *State, cmd Command) error {
 	return nil
 }
 
-func HandlerAddFeed(s *State, cmd Command) error {
+func HandlerAddFeed(s *State, cmd Command, currentUser database.User) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("Error argument")
-	}
-
-	currentUser, err := s.Db.GetUser(context.Background(), s.Cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("Failed to get user id: %w", err)
 	}
 
 	newFeed, err := s.Db.CreateFeed(context.Background(), database.CreateFeedParams{
@@ -116,6 +111,17 @@ func HandlerAddFeed(s *State, cmd Command) error {
 	})
 	if err != nil {
 		return fmt.Errorf("Failed to create feed: %w", err)
+	}
+
+	_, err = s.Db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID: uuid.New(),
+		CreatedAt: time.Now(), 
+		UpdatedAt: time.Now(),
+		UserID: currentUser.ID,
+		FeedID: newFeed.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to create feed follow: %w", err)
 	}
 
 	fmt.Println(newFeed)
@@ -138,5 +144,39 @@ func HandlerFeeds(s *State, cmd Command) error {
 		fmt.Println(username)
 	}
 
+	return nil
+}
+
+func HandlerFollow(s *State, cmd Command, user database.User) error {
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("Error argument")
+	}
+	feed, err := s.Db.GetFeed(context.Background(), cmd.Args[0])
+	if err != nil {
+		return fmt.Errorf("Failed to get feed_id: %w", err)
+	}
+	_, err = s.Db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(), 
+		UserID: user.ID,
+		FeedID: feed.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to create feed follow: %w", err)
+	}
+	fmt.Println(feed.Name)
+	fmt.Println(s.Cfg.CurrentUserName)
+	return nil
+}
+
+func HandlerFollowing(s *State, cmd Command, user database.User) error {
+	feeds, err := s.Db.GetFeedFollowsForUser(context.Background(), user.ID)
+	if err != nil {
+		return fmt.Errorf("Failed to get feeds: %w", err)
+	}
+	for _, feed := range feeds {
+		fmt.Println(feed.Name)
+	}
 	return nil
 }

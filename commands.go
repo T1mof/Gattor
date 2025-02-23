@@ -1,4 +1,4 @@
-package internal
+package main
 
 type Сommands struct {
 	Commands map[string]func(*State, Command) error
