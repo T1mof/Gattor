@@ -1,1 +1,1 @@
-Gattor CLI 
+gator CLI 
