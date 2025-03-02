@@ -8,6 +8,7 @@ import (
 	"Gattor/internal/config"
 	"Gattor/internal/database"
 	"github.com/google/uuid"
+	"log"
 )
 
 type State struct {
@@ -88,12 +89,22 @@ func HandlerUsers(s *State, cmd Command) error {
 }
 
 func HandlerAgg(s *State, cmd Command) error {
-	rss, err := fetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
-	if err != nil {
-		return fmt.Errorf("Failed to fetch: %w", err)
+	if len(cmd.Args) < 1 || len(cmd.Args) > 2 {
+		return fmt.Errorf("usage: %v <time_between_reqs>", cmd.Name)
 	}
-	fmt.Println(rss)
-	return nil
+
+	timeBetweenRequests, err := time.ParseDuration(cmd.Args[0])
+	if err != nil {
+		return fmt.Errorf("invalid duration: %w", err)
+	}
+
+	log.Printf("Collecting feeds every %s...", timeBetweenRequests)
+
+	ticker := time.NewTicker(timeBetweenRequests)
+
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
+	}
 }
 
 func HandlerAddFeed(s *State, cmd Command, currentUser database.User) error {
@@ -179,4 +190,45 @@ func HandlerFollowing(s *State, cmd Command, user database.User) error {
 		fmt.Println(feed.Name)
 	}
 	return nil
+}
+
+func HandlerUnfollow(s *State, cmd Command, user database.User) error {
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("Error argument")
+	}
+	err := s.Db.DeleteFollow(context.Background(), database.DeleteFollowParams{
+		UserID: user.ID,
+		Url: cmd.Args[0],
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to unfollow: %w", err)
+	}
+	return nil
+}
+
+func scrapeFeeds(s *State) {
+	feed, err := s.Db.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		log.Println("Couldn't get next feeds to fetch", err)
+		return 
+	}
+	log.Println("Found a feed to fetch!")
+	scrapeFeed(s.Db, feed)
+}
+
+func scrapeFeed(Db *database.Queries, feed database.Feed) {
+	err := Db.MarkFeedFetched(context.Background(), feed.ID)
+	if err != nil {
+		log.Printf("Couldn't mark feed %s fetched: %v", feed.Name, err)
+		return 
+	}
+	RSS, err := fetchFeed(context.Background(), feed.Url)
+	if err != nil {
+		log.Printf("Couldn't collect feed %s: %v", feed.Name, err)
+		return
+	}
+	for _, elem := range RSS.Channel.Item {
+		fmt.Printf("Found post: %s\n", elem.Title)
+	}
+	log.Printf("Feed %s collected, %v posts found", feed.Name, len(RSS.Channel.Item))
 }
